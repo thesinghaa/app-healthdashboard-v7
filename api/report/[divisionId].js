@@ -4,6 +4,7 @@ export const maxDuration = 60;
 
 const VALID        = new Set(['rch', 'ndcp', 'ncd', 'hss', 'hrh']);
 const STRONG_MODEL = 'llama-3.3-70b-versatile';
+const FAST_MODEL   = 'llama-3.1-8b-instant';
 
 /* ─────────────────────────────────────────────────────────────────
    STATUS HELPERS
@@ -147,16 +148,28 @@ function parseNarrative(text) {
 }
 
 async function groqCall(apiKey, model, systemMsg, userMsg, maxTokens) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model, temperature: 0.25, max_tokens: maxTokens,
-      messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq error ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return (await res.json()).choices[0].message.content;
+  /* Try requested model first, fall back to fast model on rate limit */
+  const modelsToTry = model === STRONG_MODEL
+    ? [STRONG_MODEL, FAST_MODEL]
+    : [model];
+
+  let lastErr;
+  for (const m of modelsToTry) {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: m, temperature: 0.25, max_tokens: maxTokens,
+        messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
+      }),
+    });
+    if (r.ok) return (await r.json()).choices[0].message.content;
+    const body = await r.text();
+    lastErr = `Groq error ${r.status} (${m}): ${body.slice(0, 200)}`;
+    /* Only fall back on rate-limit errors */
+    if (r.status !== 429) break;
+  }
+  throw new Error(lastErr);
 }
 
 /* ─────────────────────────────────────────────────────────────────

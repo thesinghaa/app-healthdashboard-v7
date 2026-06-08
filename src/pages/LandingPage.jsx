@@ -896,7 +896,7 @@ export default function LandingPage({ onSelectDivision, onViewSummary, onDirectK
             key={div.id}
             className={`v5-div-pill${activeDivId === div.id ? ' v5-div-pill--active' : ''}`}
             style={{ '--dc': div.color, '--dl': div.light }}
-            onClick={() => { setActiveDivId(div.id); setDivPillTarget(div.id); }}
+            onClick={() => { setActiveDivId(div.id); setDivPillTarget({ id: div.id, key: Date.now() }); }}
           >
             <span className="v5-div-pill-icon-wrap">
               <img src={`/sidebar/${div.short}.png`} alt="" className="v5-div-pill-icon" />
@@ -1099,7 +1099,7 @@ export default function LandingPage({ onSelectDivision, onViewSummary, onDirectK
           <nav className="v4l-footer-nav">
             {DIVISIONS.map(div => (
               <button key={div.id} className="v4l-footer-link" data-abbr={div.label}
-                      onClick={() => setDivPillTarget(div.id)}>
+                      onClick={() => setDivPillTarget({ id: div.id, key: Date.now() })}>
                 {div.label}
               </button>
             ))}

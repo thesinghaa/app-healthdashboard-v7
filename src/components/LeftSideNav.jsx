@@ -262,7 +262,11 @@ function ProgrammeWheelPage({ division, divData, onSelect, onSelectKD, isLoggedI
   }, [selected]);
 
   function close() {
-    gsap.to(pageRef.current, { opacity: 0, scale: 0.97, duration: 0.2, onComplete: onClose });
+    if (pageRef.current) {
+      gsap.to(pageRef.current, { opacity: 0, scale: 0.97, duration: 0.2, onComplete: onClose });
+    } else {
+      onClose();
+    }
   }
 
   function handleSelect(prog) {
@@ -290,7 +294,7 @@ function ProgrammeWheelPage({ division, divData, onSelect, onSelectKD, isLoggedI
     >
       {/* ── Header ── */}
       <header className="wpg-header" ref={headerRef}>
-        <button className="wpg-back-btn" onClick={onLogout || close}>
+        <button className="wpg-back-btn" onClick={close}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
@@ -677,16 +681,17 @@ function DivisionStoryPage({ division, onClose, onExploreProgrammes, onLogout })
     onExploreProgrammes();
   }
 
-  if (!story) {
-    onExploreProgrammes();
-    return null;
-  }
+  useEffect(() => {
+    if (!story) onExploreProgrammes();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!story) return null;
 
   return (
     <div className="dsp-page" ref={pageRef} style={{ '--dc': division.color, '--dl': division.light }}>
       {/* ── Header ── */}
       <header className="dsp-header">
-        <button className="wpg-back-btn" onClick={onLogout || close}>
+        <button className="wpg-back-btn" onClick={close}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
@@ -869,7 +874,8 @@ export default function LeftSideNav({ onSelectDivision, onSelectProgramme, openW
   // Called from landing page division pills — mirrors row click (story first for RCH, wheel for others)
   useEffect(() => {
     if (!openDivDirect) return;
-    const div = DIVISIONS.find(d => d.id === openDivDirect);
+    const divId = typeof openDivDirect === 'object' ? openDivDirect.id : openDivDirect;
+    const div = DIVISIONS.find(d => d.id === divId);
     if (div) { setActiveDiv(div); setShowWheel(false); }
   }, [openDivDirect]);
 
@@ -911,6 +917,8 @@ export default function LeftSideNav({ onSelectDivision, onSelectProgramme, openW
     if (onDirectKD) onDirectKD(divData, prog.id, kd);
   }
 
+  console.log('[LSN] render activeDiv:', activeDiv?.id, 'showWheel:', showWheel);
+
   return (
     <>
 
@@ -932,7 +940,7 @@ export default function LeftSideNav({ onSelectDivision, onSelectProgramme, openW
           isLoggedIn={isLoggedIn}
           loggedInUser={loggedInUser}
           onLogin={() => onNeedLogin && onNeedLogin(null)}
-          onClose={() => { setActiveDiv(null); setShowWheel(false); }}
+          onClose={() => setShowWheel(false)}
           onLogout={onLogout ? () => { setActiveDiv(null); setShowWheel(false); onLogout(); } : null}
           onReport={onReport ? () => onReport(activeDiv.id, activeDiv.name, activeDiv.color) : null}
         />

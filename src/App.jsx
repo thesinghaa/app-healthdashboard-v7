@@ -118,7 +118,7 @@ function AppInner() {
         <KDProgrammePage
           program={view.program}
           division={view.division}
-          onBack={goHome}
+          onBack={goBack}
           onSelectIndicator={goToIndicator}
           onCurrentStatus={goToCurrentStatus}
         />
