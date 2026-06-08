@@ -740,6 +740,7 @@ export default function LandingPage({ onSelectDivision, onViewSummary, onDirectK
   const [wheelTarget, setWheelTarget]       = useState(null);
   const [pendingDiv,  setPendingDiv]        = useState(null);
   const [divPillTarget, setDivPillTarget]  = useState(null);
+  const [activeDivId,   setActiveDivId]    = useState(null);
   const [showBioModal, setShowBioModal]     = useState(false);
   const [bioStatus, setBioStatus]           = useState('idle');
   const [bioStored, setBioStored]           = useState(() => !!localStorage.getItem('bio_cred'));
@@ -889,12 +890,13 @@ export default function LandingPage({ onSelectDivision, onViewSummary, onDirectK
 
       {/* ── Division nav bar ────────────────────────────────────────────── */}
       <div className="v5-div-bar">
+        <span className="v5-div-bar-label">DIVISIONS</span>
         {DIV_NAV.map(div => (
           <button
             key={div.id}
-            className="v5-div-pill"
+            className={`v5-div-pill${activeDivId === div.id ? ' v5-div-pill--active' : ''}`}
             style={{ '--dc': div.color, '--dl': div.light }}
-            onClick={() => setDivPillTarget(div.id)}
+            onClick={() => { setActiveDivId(div.id); setDivPillTarget(div.id); }}
           >
             <span className="v5-div-pill-icon-wrap">
               <img src={`/sidebar/${div.short}.png`} alt="" className="v5-div-pill-icon" />

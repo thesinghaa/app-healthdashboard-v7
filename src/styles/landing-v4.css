@@ -6765,11 +6765,11 @@ td:last-child { padding: 8px 10px; }
 /* ── v5-div-bar — horizontal division selector on landing page ────────── */
 .v5-div-bar {
   display: flex;
-  align-items: stretch;
-  gap: 10px;
-  padding: 12px 48px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 32px;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
 }
 .v5-div-pill {
   flex: 1;
@@ -6777,77 +6777,90 @@ td:last-child { padding: 8px 10px; }
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  padding: 6px 14px 6px 6px;
-  border: 2px solid color-mix(in srgb, var(--dc) 40%, transparent);
+  padding: 5px 12px 5px 5px;
+  border: 2px solid color-mix(in srgb, var(--dc) 30%, transparent);
   border-radius: 50px;
-  background: var(--dl);
+  background: color-mix(in srgb, var(--dc) 6%, #fff);
   cursor: pointer;
   transition: background 0.18s, border-color 0.18s, transform 0.12s, box-shadow 0.18s;
   text-align: left;
 }
 .v5-div-pill:hover {
+  background: var(--dl);
   border-color: var(--dc);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--dc) 20%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--dc) 22%, transparent);
+}
+.v5-div-pill:active {
+  transform: scale(0.97);
+}
+.v5-div-pill--active {
+  background: var(--dl);
+  border-color: var(--dc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc) 18%, transparent),
+              0 4px 12px color-mix(in srgb, var(--dc) 20%, transparent);
 }
 .v5-div-pill-divider {
-  width: 2.5px;
+  width: 2px;
   align-self: stretch;
-  background: color-mix(in srgb, var(--dc) 50%, transparent);
+  background: color-mix(in srgb, var(--dc) 40%, transparent);
   flex-shrink: 0;
-  margin: 0 12px;
+  margin: 0 10px;
   border-radius: 2px;
 }
 .v5-div-pill-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--dc) 12%, #fff);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dc) 10%, #fff);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 0;
+}
+.v5-div-pill--active .v5-div-pill-icon-wrap {
+  background: color-mix(in srgb, var(--dc) 18%, #fff);
 }
 .v5-div-pill-icon {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
 }
 .v5-div-pill-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
   flex: 1;
 }
 .v5-div-pill-short {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--dc);
   line-height: 1;
 }
 .v5-div-pill-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: #475569;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
   white-space: normal;
   line-height: 1.2;
 }
 
 .v5-div-bar-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  color: #64748b;
+  color: #94a3b8;
   white-space: nowrap;
   flex-shrink: 0;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  padding-right: 4px;
 }
 
 .v5-div-bar-label-row {
   display: flex;
   justify-content: center;
   padding: 6px 48px 0;
-  background: #fff;
+  background: #f8fafc;
 }

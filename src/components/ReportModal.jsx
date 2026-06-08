@@ -4,10 +4,10 @@ const API_BASE = import.meta.env.VITE_REPORT_API_URL || '';
 
 /* Steps match real backend SSE events — idx 0-3 */
 const STEPS = [
-  { label: 'Computing KD data',      pct: 15  },
-  { label: 'Analysing performance',  pct: 55  },
-  { label: 'Building report',        pct: 90  },
-  { label: 'Finalising',            pct: 100 },
+  { label: 'DataCollector',   role: 'Structuring KD + HMIS data',      pct: 15  },
+  { label: 'Analyst',         role: 'Root causes & priorities',         pct: 55  },
+  { label: 'ReportWriter',    role: 'Building HTML report',             pct: 90  },
+  { label: 'QualityChecker',  role: 'Tone & accuracy review',           pct: 100 },
 ];
 
 export default function ReportModal({ divisionId, divisionName, divisionColor, onClose }) {
@@ -97,28 +97,32 @@ export default function ReportModal({ divisionId, divisionName, divisionColor, o
           {/* Idle */}
           {phase === 'idle' && (
             <div className="rpt-idle">
-              <div className="rpt-idle-icon">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                  <rect x="8" y="6" width="32" height="36" rx="4" stroke={accent} strokeWidth="2"/>
-                  <path d="M16 16h16M16 22h16M16 28h10" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
-                  <circle cx="36" cy="36" r="8" fill="#051c2c" stroke={accent} strokeWidth="1.5"/>
-                  <path d="M33 36l2 2 4-4" stroke={accent} strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
+              <div className="rpt-idle-pipeline">
+                {STEPS.map((s, i) => (
+                  <div key={i} className="rpt-idle-node-wrap">
+                    <div className="rpt-idle-node" style={{ '--ac': accent }}>
+                      <span className="rpt-idle-node-num">{i + 1}</span>
+                    </div>
+                    <span className="rpt-idle-node-label">{s.label}</span>
+                    {i < STEPS.length - 1 && <div className="rpt-idle-connector" style={{ '--ac': accent }} />}
+                  </div>
+                ))}
               </div>
               <h3 className="rpt-idle-title">Generate Division Report</h3>
               <p className="rpt-idle-desc">
-                3 AI agents will analyse all {divisionName} KDs and NFHS baselines —
-                then write a 4–5 page executive report with recommendations.
-                Takes ~40–60 seconds.
+                4 AI agents will analyse all {divisionName} KDs and HMIS trends —
+                then write a 4–5 page executive report with strategic recommendations.
+                Takes ~60–90 seconds.
               </p>
               <div className="rpt-idle-pills">
                 <span className="rpt-pill">KD Performance</span>
                 <span className="rpt-pill">Gap Analysis</span>
-                <span className="rpt-pill">NFHS Baseline</span>
+                <span className="rpt-pill">HMIS Trends</span>
                 <span className="rpt-pill">Recommendations</span>
               </div>
               <button className="rpt-btn rpt-btn--generate" onClick={generate}>
                 Generate Report
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
               </button>
             </div>
           )}
@@ -126,22 +130,41 @@ export default function ReportModal({ divisionId, divisionName, divisionColor, o
           {/* Loading */}
           {phase === 'loading' && (
             <div className="rpt-loading">
-              <div className="rpt-spinner" />
-              <p className="rpt-loading-step">{step.label}…</p>
-              <div className="rpt-progress-bar">
+              <div className="rpt-pipeline">
+                {STEPS.map((s, i) => {
+                  const isDone   = i < stepIdx;
+                  const isActive = i === stepIdx;
+                  return (
+                    <div key={i}>
+                      <div className={`rpt-pipeline-row${isDone ? ' rpt-pipeline-row--done' : ''}${isActive ? ' rpt-pipeline-row--active' : ''}`}>
+                        <div className="rpt-pipeline-dot">
+                          {isDone
+                            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c97a" strokeWidth="3" strokeLinecap="round"><path d="M5 13l4 4L19 7"/></svg>
+                            : isActive
+                              ? <span className="rpt-pipeline-pulse" />
+                              : null
+                          }
+                        </div>
+                        <div className="rpt-pipeline-text">
+                          <span className="rpt-pipeline-name">{s.label}</span>
+                          <span className="rpt-pipeline-role">{s.role}</span>
+                        </div>
+                        {isActive && <span className="rpt-pipeline-badge">Running</span>}
+                        {isDone   && <span className="rpt-pipeline-badge rpt-pipeline-badge--done">Done</span>}
+                      </div>
+                      {i < STEPS.length - 1 && (
+                        <div className={`rpt-pipeline-line${isDone ? ' rpt-pipeline-line--done' : ''}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="rpt-progress-bar" style={{ marginTop: 24 }}>
                 <div className="rpt-progress-fill" style={{ width: `${step.pct}%` }} />
               </div>
               <p className="rpt-loading-sub">
                 Powered by Groq · {step.pct}% complete
               </p>
-              <div className="rpt-agent-list">
-                {STEPS.map((s, i) => (
-                  <div key={i} className={`rpt-agent-step${i <= stepIdx ? ' rpt-agent-step--done' : ''}${i === stepIdx ? ' rpt-agent-step--active' : ''}`}>
-                    <span className="rpt-agent-dot" />
-                    <span>{s.label}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
@@ -163,6 +186,10 @@ export default function ReportModal({ divisionId, divisionName, divisionColor, o
           {/* Done — render HTML report */}
           {phase === 'done' && (
             <div className="rpt-report-frame">
+              <div className="rpt-success-strip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c97a" strokeWidth="2.5" strokeLinecap="round"><path d="M5 13l4 4L19 7"/></svg>
+                Report ready — {divisionName} · FY 2025-26
+              </div>
               <iframe
                 title="Division Report"
                 srcDoc={html}
