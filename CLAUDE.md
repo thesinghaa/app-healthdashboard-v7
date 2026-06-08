@@ -184,12 +184,26 @@ Projection: `{ center: [94.483, 28.056], scale: 2780 }` (landing map) / `{ cente
 
 ---
 
+## backend-py (Railway — CrewAI pipeline)
+
+- **Railway URL**: `https://responsible-luck-production-9cd4.up.railway.app`
+- **Railway project**: `responsible-luck` (aryansinghpif's Projects)
+- **Service**: `responsible-luck` — FastAPI + 4-agent CrewAI pipeline
+- **Deploy**: `cd backend-py && railway up --detach`
+- **Env vars on Railway**: `GROQ_API_KEY`, `ALLOWED_ORIGINS`
+- **Vercel env**: `VITE_REPORT_API_URL=https://responsible-luck-production-9cd4.up.railway.app` (production)
+- **Local env**: `PIFHealthDashboard-v7/.env.local` has `VITE_REPORT_API_URL`
+- **agents/**: 4 files — data_collector, analyst, report_writer, quality_checker
+- **tools/**: kd_loader, hmis_fetcher, chart_gen (Plotly primary / matplotlib fallback), agent_tools (@tool wrappers)
+- **Flow**: ReportModal.jsx → POST Railway `/api/report/{divisionId}` → SSE → 4 CrewAI agents → HTML report
+
 ## Deferred (June 2026)
 
 - `dsp-subtitle` + `dsp-intro` max-width removal — user wants full-width (remove `max-width:700-720px; margin:auto` from `landing-v4.css`)
 - Stories for NDCP, NCD, HSS, HRH divisions
 - District sex-ratio map (Story 2) — awaiting data
 - Family planning method-mix chart (Story 5) — awaiting data
+- Remove debug console.logs from LeftSideNav.jsx `close()` function (added in prior session, never deployed)
 
 ---
 
