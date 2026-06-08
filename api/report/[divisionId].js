@@ -147,27 +147,28 @@ function parseNarrative(text) {
   return { exec, analyses, working, recs };
 }
 
-async function groqCall(apiKey, model, systemMsg, userMsg, maxTokens) {
-  /* Try requested model first, fall back to fast model on rate limit */
+async function groqCall(apiKeys, model, systemMsg, userMsg, maxTokens) {
+  /* Try: key1+strong → key1+fast → key2+strong → key2+fast */
   const modelsToTry = model === STRONG_MODEL
     ? [STRONG_MODEL, FAST_MODEL]
     : [model];
 
   let lastErr;
-  for (const m of modelsToTry) {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: m, temperature: 0.25, max_tokens: maxTokens,
-        messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
-      }),
-    });
-    if (r.ok) return (await r.json()).choices[0].message.content;
-    const body = await r.text();
-    lastErr = `Groq error ${r.status} (${m}): ${body.slice(0, 200)}`;
-    /* Only fall back on rate-limit errors */
-    if (r.status !== 429) break;
+  for (const key of apiKeys) {
+    for (const m of modelsToTry) {
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: m, temperature: 0.25, max_tokens: maxTokens,
+          messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
+        }),
+      });
+      if (r.ok) return (await r.json()).choices[0].message.content;
+      const body = await r.text();
+      lastErr = `Groq error ${r.status} (${m}): ${body.slice(0, 200)}`;
+      if (r.status !== 429) break; // non-rate-limit → try next key
+    }
   }
   throw new Error(lastErr);
 }
@@ -624,8 +625,11 @@ export default async function handler(req, res) {
   if (!VALID.has(divisionId))
     return res.status(404).json({ detail: `Unknown division: ${divisionId}` });
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey)
+  const apiKeys = [
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY_2,
+  ].filter(Boolean);
+  if (!apiKeys.length)
     return res.status(500).json({ detail: 'GROQ_API_KEY not configured' });
 
   res.setHeader('Content-Type',  'text/event-stream');
@@ -644,7 +648,7 @@ export default async function handler(req, res) {
     send({ type: 'step', idx: 1 });
     const prompt = buildPrompt(divData);
     const narrative = await groqCall(
-      apiKey, STRONG_MODEL,
+      apiKeys, STRONG_MODEL,
       'You are a senior public health analyst at Pahlé India Foundation. Follow the section format EXACTLY as instructed.',
       prompt,
       2500,

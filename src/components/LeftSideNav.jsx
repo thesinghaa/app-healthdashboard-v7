@@ -917,8 +917,6 @@ export default function LeftSideNav({ onSelectDivision, onSelectProgramme, openW
     if (onDirectKD) onDirectKD(divData, prog.id, kd);
   }
 
-  console.log('[LSN] render activeDiv:', activeDiv?.id, 'showWheel:', showWheel);
-
   return (
     <>
 
