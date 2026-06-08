@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+AP_dashboard_data/
+.vercel
+backend-py/.env
