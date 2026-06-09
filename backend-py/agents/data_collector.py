@@ -49,12 +49,13 @@ def make_task(agent: Agent, division_id: str, div_full_name: str) -> Task:
             "why it matters.\n"
             "5. HMIS TREND OBSERVATIONS: monthly data patterns, improving or "
             "declining indicators, seasonality.\n"
-            "Be precise with numbers. Do not add commentary or recommendations yet."
+            "Be precise with numbers. Do not add commentary or recommendations yet.\n"
+            "IMPORTANT: Keep your entire response under 300 words. Use bullet points."
         ),
         expected_output=(
-            "A structured text briefing with sections: Division Snapshot, "
+            "Structured briefing under 300 words: Division Snapshot, "
             "Programme Table, Top 5 Critical Gaps, Top 3 Achievements, "
-            "HMIS Trend Observations."
+            "HMIS Trends. Bullet points."
         ),
         agent=agent,
     )

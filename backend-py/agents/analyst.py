@@ -1,9 +1,9 @@
 """
 Agent 2 — Analyst
 Model: ALT_MODEL (KEY2, separate TPM budget)
-Job:   Deep analysis from DC briefing — root causes, priorities, 6 strategic recommendations.
-No tools — DC briefing already contains all needed data. Calling kd_raw_tool
-would dump ~10k-token JSON, blowing the 6000 TPM limit.
+Job:   Deep analysis from a snippet of DC's briefing.
+Context is passed as a string injected into the task description
+(NOT via CrewAI context=[...]) so we avoid full execution-trace blowup.
 """
 
 from crewai import Agent, Task
@@ -14,17 +14,13 @@ def make_agent() -> Agent:
     return Agent(
         role="Senior Public Health Programme Analyst",
         goal=(
-            "Identify the most important performance patterns, root causes, and "
-            "actionable priorities for the division, framed for a senior health "
-            "officer who must decide where to focus resources next quarter."
+            "Identify performance patterns, root causes, and actionable priorities "
+            "for a senior health officer who must decide where to focus resources."
         ),
         backstory=(
-            "You are a senior programme analyst with 12 years of experience in "
-            "public health monitoring across Northeast India. You understand NHM "
-            "structures, district-level constraints in remote tribal states, and "
-            "how to translate data into strategic priorities. Arunachal Pradesh: "
-            "27 districts, terrain challenges, sparse populations, limited transport "
-            "in monsoon, ongoing capacity-building needs at block level."
+            "Senior programme analyst, 12 years in public health monitoring across "
+            "Northeast India. Arunachal Pradesh context: 27 districts, terrain "
+            "challenges, sparse populations, limited monsoon transport."
         ),
         llm=ALT_MODEL,
         verbose=False,
@@ -34,28 +30,23 @@ def make_agent() -> Agent:
     )
 
 
-def make_task(agent: Agent, division_id: str, div_full_name: str, context: list) -> Task:
+def make_task(agent: Agent, division_id: str,
+              div_full_name: str, dc_snippet: str) -> Task:
     return Task(
         description=(
-            f"Using ONLY the data briefing provided in context, produce a deep "
-            f"analytical assessment for {div_full_name} division.\n\n"
-            "REQUIRED SECTIONS:\n"
-            "1. TOP 3 CRITICAL PRIORITIES: programme name, specific KD indicators "
-            "   with exact numbers, 2-3 contributing factors (supply chain, HR, "
-            "   training, geographic access, community awareness).\n"
-            "2. POSITIVE FINDINGS: 3 bright spots with specific numbers and why "
-            "   each matters for beneficiary health.\n"
-            "3. SYSTEMIC PATTERNS: cross-programme issues (supply chain, HR gaps, "
-            "   digital reporting lags).\n"
-            "4. STRATEGIC RECOMMENDATIONS: 6 specific, actionable items. "
-            "   Each: action | Responsible party | Timeline.\n\n"
+            f"Produce a structured analytical assessment for {div_full_name} "
+            f"division (NHM Arunachal Pradesh, FY 2025-26).\n\n"
+            f"DATA BRIEFING FROM DATA COLLECTOR:\n{dc_snippet}\n\n"
+            "REQUIRED SECTIONS (be concise — under 400 words total):\n"
+            "1. TOP 3 CRITICAL PRIORITIES: programme, KD indicators with numbers, "
+            "   2 contributing factors each.\n"
+            "2. POSITIVE FINDINGS: 3 bright spots with exact numbers.\n"
+            "3. STRATEGIC RECOMMENDATIONS: 6 items. Each: action | Responsible | Timeline.\n\n"
             f"{TONE_RULES}"
         ),
         expected_output=(
-            "Structured analysis: Top 3 Critical Priorities, Positive Findings, "
-            "Systemic Patterns, 6 Strategic Recommendations with responsible party "
-            "and timeline for each."
+            "Concise structured analysis: Top 3 Critical Priorities, "
+            "Positive Findings, 6 Strategic Recommendations. Under 400 words."
         ),
         agent=agent,
-        context=context,
     )

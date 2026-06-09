@@ -1,17 +1,17 @@
 """
-CrewAI orchestrator — builds and runs the 4-agent pipeline.
+CrewAI orchestrator — runs 4 agents sequentially with strict context control.
 
-Agent scripts live in agents/:
-  data_collector.py  → Agent 1 + Task 1
-  analyst.py         → Agent 2 + Task 2
-  report_writer.py   → Agent 3 + Task 3
-  quality_checker.py → Agent 4 + Task 4
+Each agent is a separate single-agent Crew. Output is truncated before
+passing to the next agent so we stay under Groq free-tier 6000 TPM/minute.
 
-Agents now fetch their own data via @tool-decorated tool wrappers.
+Agent token budget (input tokens per LLM call, free-tier limit = 6000):
+  DC      : ~2500 (own prompt + tool results)
+  Analyst : ~2500 (own prompt + truncated DC output 1200 chars)
+  Writer  : ~3500 (own prompt + truncated briefing 2000 chars + chart tool result)
+  QC      : ~3000 (own prompt + truncated Writer HTML 1500 chars)
 """
 
-import time
-import threading
+import time, threading
 from crewai import Crew, Process
 
 from agents import (
@@ -21,58 +21,72 @@ from agents import (
     checker_agent,   checker_task,
 )
 
-# 30-second gap between tasks.
-# KEY1 agents (DC, Writer) and KEY2 agents (Analyst, QC) each have 6000 TPM/min.
-# Alternating keys means no shared window — 30s gap is a safety buffer.
-PACE_SECONDS = 30
+# Gap between agent runs — gives TPM window time to clear on same key
+PACE_SECONDS = 20
+
+# Max chars of each agent's output to pass as context to the next agent
+# (~4 chars per token → 1200 chars ≈ 300 tokens context injection)
+DC_TRUNCATE      = 1200
+ANALYST_TRUNCATE = 1200
+WRITER_TRUNCATE  = 2000   # writer output is HTML — QC needs more of it
 
 
-def build_crew(division_id: str, div_full_name: str,
-               step_callback=None) -> Crew:
-    """
-    Returns a configured Crew ready to kickoff().
-    step_callback(step_idx: int) is called after each task completes (0-based).
-    Agents fetch KD/HMIS/chart data themselves via their assigned tools.
-    """
-    # Instantiate agents
-    c = collector_agent()
-    a = analyst_agent()
-    w = writer_agent()
-    q = checker_agent()
-
-    # Build tasks — agents receive division_id and call tools themselves
-    t1 = collector_task(c, division_id, div_full_name)
-    t2 = analyst_task(a, division_id, div_full_name, context=[t1])
-    t3 = writer_task(w, division_id, div_full_name, context=[t1, t2])
-    t4 = checker_task(q, division_id, context=[t1, t3])
-
-    # Step callbacks + pacing
-    _step = [0]
-    _lock = threading.Lock()
-
-    def _on_task_end(task_output):
-        with _lock:
-            _step[0] += 1
-            if step_callback:
-                step_callback(_step[0])
-            # Pace: sleep before next LLM call (not after last task)
-            if _step[0] < 3:
-                time.sleep(PACE_SECONDS)
-
-    t1.callback = _on_task_end
-    t2.callback = _on_task_end
-    t3.callback = _on_task_end
-
-    return Crew(
-        agents=[c, a, w, q],
-        tasks=[t1, t2, t3, t4],
+def _run_single(agent, task) -> str:
+    """Run one agent in isolation — no shared CrewAI context."""
+    crew = Crew(
+        agents=[agent],
+        tasks=[task],
         process=Process.sequential,
         verbose=False,
     )
+    result = crew.kickoff()
+    return str(result).strip()
 
 
 def run_report(division_id: str, div_full_name: str,
                step_callback=None) -> str:
-    crew = build_crew(division_id, div_full_name, step_callback)
-    result = crew.kickoff()
-    return str(result)
+    """
+    Run 4 agents sequentially with controlled context. Returns final HTML.
+    step_callback(idx) fires after each agent completes.
+    """
+
+    # ── Agent 1: DataCollector ─────────────────────────────────────────
+    c   = collector_agent()
+    t1  = collector_task(c, division_id, div_full_name)
+    dc_output = _run_single(c, t1)
+    if step_callback:
+        step_callback(1)
+    time.sleep(PACE_SECONDS)
+
+    # Truncate DC output before passing as context injection
+    dc_snippet = dc_output[:DC_TRUNCATE]
+
+    # ── Agent 2: Analyst ───────────────────────────────────────────────
+    a  = analyst_agent()
+    t2 = analyst_task(a, division_id, div_full_name, dc_snippet)
+    an_output = _run_single(a, t2)
+    if step_callback:
+        step_callback(2)
+    time.sleep(PACE_SECONDS)
+
+    analyst_snippet = an_output[:ANALYST_TRUNCATE]
+
+    # ── Agent 3: ReportWriter ──────────────────────────────────────────
+    w  = writer_agent()
+    t3 = writer_task(w, division_id, div_full_name,
+                     dc_snippet, analyst_snippet)
+    html_raw = _run_single(w, t3)
+    if step_callback:
+        step_callback(3)
+    time.sleep(PACE_SECONDS)
+
+    writer_snippet = html_raw[:WRITER_TRUNCATE]
+
+    # ── Agent 4: QualityChecker ────────────────────────────────────────
+    q  = checker_agent()
+    t4 = checker_task(q, division_id, writer_snippet)
+    final_html = _run_single(q, t4)
+    if step_callback:
+        step_callback(4)
+
+    return final_html
