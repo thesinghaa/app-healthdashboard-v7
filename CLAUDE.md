@@ -169,11 +169,30 @@ Status colors: gap `#FF3B5C` · close `#FFB020` · ok `#00C97A`
 
 ---
 
-## Report Generation
+## Report Generation (v7 — CrewAI 4-agent Railway pipeline)
 
-`ReportModal.jsx` → `api/report/[divisionId].js` — 3 Groq calls:  
-1. `llama-3.1-8b-instant` DataCollector → 2. `llama-3.3-70b` Analyst → 3. `llama-3.3-70b` ReportWriter  
-Groq keys in Vercel env (`GROQ_API_KEY` + 4 fallbacks in `.env`).
+`DivisionPage` → `ReportModal.jsx` → POST Railway `/api/report/{divisionId}` → SSE stream → 4 CrewAI agents → HTML report + 3 chart images injected post-crew.
+
+**Model**: `gemini/gemini-2.0-flash` (Google AI Studio, free tier, 15 RPM, 1500 RPD, 1M TPM)  
+**Key**: `GEMINI_API_KEY` on Railway. Free tier resets daily at midnight UTC.  
+**PACE_SECONDS = 5** — 5s gap between agents to stay under 15 RPM.
+
+**Agent architecture (separate-crew pattern):**
+- Each agent runs as its own single-agent Crew — no CrewAI context chain (avoids full execution trace blowup)
+- Context injected as truncated strings in task descriptions: DC→1200 chars, Analyst→1200 chars, Writer→20000 chars
+- DC (kd_summary_tool + hmis_trends_tool) → Analyst (no tools) → Writer (generate_charts_tool) → QC (no tools)
+- Writer max_tokens=3000; others 2000
+
+**Token budget per agent (input + output, under 1M TPM):**
+- DC: ~2500 input + 2000 output
+- Analyst: ~1500 input + 1500 output
+- Writer: ~2500 input + 3000 output
+- QC: ~5000 input + 3000 output
+
+**IMPORTANT — if 429 RESOURCE_EXHAUSTED:**
+- Free daily quota exhausted (1500 RPD). Reset at midnight UTC.
+- Fix: create NEW Google AI Studio project → new `GEMINI_API_KEY` → `railway variables set`
+- Alternative: upgrade same project to pay-per-token billing
 
 ---
 
@@ -189,13 +208,13 @@ Projection: `{ center: [94.483, 28.056], scale: 2780 }` (landing map) / `{ cente
 - **Railway URL**: `https://responsible-luck-production-9cd4.up.railway.app`
 - **Railway project**: `responsible-luck` (aryansinghpif's Projects)
 - **Service**: `responsible-luck` — FastAPI + 4-agent CrewAI pipeline
-- **Deploy**: `cd backend-py && railway up --detach`
-- **Env vars on Railway**: `GROQ_API_KEY`, `ALLOWED_ORIGINS`
+- **Deploy**: `cd /Users/thesinghaa/PIFHealthDashboard-v7/backend-py && railway up --detach`
+- **Env vars on Railway**: `GEMINI_API_KEY`, `GROQ_API_KEY`, `GROQ_API_KEY_2`, `ALLOWED_ORIGINS`
 - **Vercel env**: `VITE_REPORT_API_URL=https://responsible-luck-production-9cd4.up.railway.app` (production)
 - **Local env**: `PIFHealthDashboard-v7/.env.local` has `VITE_REPORT_API_URL`
-- **agents/**: 4 files — data_collector, analyst, report_writer, quality_checker
-- **tools/**: kd_loader, hmis_fetcher, chart_gen (Plotly primary / matplotlib fallback), agent_tools (@tool wrappers)
-- **Flow**: ReportModal.jsx → POST Railway `/api/report/{divisionId}` → SSE → 4 CrewAI agents → HTML report
+- **agents/**: data_collector, analyst, report_writer, quality_checker + constants.py (model config)
+- **tools/**: kd_loader, hmis_fetcher, chart_gen (Plotly/matplotlib), agent_tools (@tool wrappers)
+- **constants.py**: FAST_MODEL = ALT_MODEL = STRONG_MODEL = LLM(model="gemini/gemini-2.0-flash", api_key=GEMINI_KEY)
 
 ## Deferred (June 2026)
 
