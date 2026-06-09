@@ -34,9 +34,9 @@ WRITER_TRUNCATE  = 2000   # writer output is HTML — QC needs more of it
 def _run_single(agent, task, max_retries: int = 4) -> str:
     """Run one agent in isolation — no shared CrewAI context.
     Retries up to max_retries times on Groq rate-limit errors,
-    waiting 5/10/20/30 seconds between attempts to outlast the TPM window."""
-    import litellm as _litellm
+    waiting 5/10/20/30s between attempts to outlast the TPM window."""
     wait_schedule = [5, 10, 20, 30]
+    last_exc = None
     for attempt in range(max_retries):
         try:
             crew = Crew(
@@ -47,11 +47,20 @@ def _run_single(agent, task, max_retries: int = 4) -> str:
             )
             result = crew.kickoff()
             return str(result).strip()
-        except _litellm.RateLimitError:
-            if attempt >= max_retries - 1:
+        except Exception as exc:
+            last_exc = exc
+            msg = str(exc).lower()
+            is_rate_limit = (
+                "rate_limit" in msg or "ratelimit" in msg
+                or "429" in msg or "too many requests" in msg
+                or "rate limit" in msg
+            )
+            if is_rate_limit and attempt < max_retries - 1:
+                wait = wait_schedule[min(attempt, len(wait_schedule) - 1)]
+                time.sleep(wait)
+            else:
                 raise
-            wait = wait_schedule[min(attempt, len(wait_schedule) - 1)]
-            time.sleep(wait)
+    raise last_exc
 
 
 def run_report(division_id: str, div_full_name: str,
