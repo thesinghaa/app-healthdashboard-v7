@@ -21,8 +21,8 @@ from agents import (
     checker_agent,   checker_task,
 )
 
-# Gemini 1.5 Flash: 1M TPM — no pacing needed
-PACE_SECONDS = 0
+# Gemini free tier: 15 RPM — 5s gap between agents keeps us under
+PACE_SECONDS = 5
 
 # Max chars injected into each agent's task description as context.
 # ~4 chars/token. QC receives full writer HTML (no truncation) — within 6000 TPM budget.
