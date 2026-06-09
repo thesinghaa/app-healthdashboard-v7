@@ -21,9 +21,10 @@ from agents import (
     checker_agent,   checker_task,
 )
 
-# 65-second gap between tasks — each task lands in a separate 60s TPM window
-# Free-tier llama-3.1-8b-instant = 6000 TPM/min; 4 agents × ~3000 tokens = needs 4 windows
-PACE_SECONDS = 65
+# 30-second gap between tasks.
+# KEY1 agents (DC, Writer) and KEY2 agents (Analyst, QC) each have 6000 TPM/min.
+# Alternating keys means no shared window — 30s gap is a safety buffer.
+PACE_SECONDS = 30
 
 
 def build_crew(division_id: str, div_full_name: str,

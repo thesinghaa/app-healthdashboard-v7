@@ -5,7 +5,7 @@ Job:   Deep analysis — root causes, priorities, 6 strategic recommendations.
 """
 
 from crewai import Agent, Task
-from .constants import STRONG_MODEL, TONE_RULES
+from .constants import ALT_MODEL, TONE_RULES
 from tools.agent_tools import kd_raw_tool
 
 
@@ -27,7 +27,7 @@ def make_agent() -> Agent:
             "during monsoon, and ongoing capacity-building needs at block level. "
             "You frame challenges constructively, as opportunities for improvement."
         ),
-        llm=STRONG_MODEL,
+        llm=ALT_MODEL,
         verbose=False,
         allow_delegation=False,
         max_iter=2,

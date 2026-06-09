@@ -5,7 +5,7 @@ Job:   Fix banned words, em-dashes, missing data references. Output corrected HT
 """
 
 from crewai import Agent, Task
-from .constants import STRONG_MODEL
+from .constants import ALT_MODEL
 from tools.agent_tools import kd_summary_tool
 
 
@@ -25,7 +25,7 @@ def make_agent() -> Agent:
             "that cite no specific numbers. You output the corrected final HTML "
             "and nothing else."
         ),
-        llm=STRONG_MODEL,
+        llm=ALT_MODEL,
         verbose=False,
         allow_delegation=False,
         max_iter=2,
