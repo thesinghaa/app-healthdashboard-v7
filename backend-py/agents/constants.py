@@ -10,7 +10,7 @@ from crewai import LLM
 _GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
 
 _BASE_PARAMS = dict(
-    model="gemini/gemini-1.5-flash",
+    model="gemini/gemini-2.0-flash",
     max_tokens=3000,
     temperature=0.3,
 )
