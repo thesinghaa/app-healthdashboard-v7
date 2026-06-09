@@ -31,16 +31,27 @@ ANALYST_TRUNCATE = 1200
 WRITER_TRUNCATE  = 2000   # writer output is HTML — QC needs more of it
 
 
-def _run_single(agent, task) -> str:
-    """Run one agent in isolation — no shared CrewAI context."""
-    crew = Crew(
-        agents=[agent],
-        tasks=[task],
-        process=Process.sequential,
-        verbose=False,
-    )
-    result = crew.kickoff()
-    return str(result).strip()
+def _run_single(agent, task, max_retries: int = 4) -> str:
+    """Run one agent in isolation — no shared CrewAI context.
+    Retries up to max_retries times on Groq rate-limit errors,
+    waiting 5/10/20/30 seconds between attempts to outlast the TPM window."""
+    import litellm as _litellm
+    wait_schedule = [5, 10, 20, 30]
+    for attempt in range(max_retries):
+        try:
+            crew = Crew(
+                agents=[agent],
+                tasks=[task],
+                process=Process.sequential,
+                verbose=False,
+            )
+            result = crew.kickoff()
+            return str(result).strip()
+        except _litellm.RateLimitError:
+            if attempt >= max_retries - 1:
+                raise
+            wait = wait_schedule[min(attempt, len(wait_schedule) - 1)]
+            time.sleep(wait)
 
 
 def run_report(division_id: str, div_full_name: str,
