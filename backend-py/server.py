@@ -25,10 +25,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from tools.kd_loader    import get_division_summary, get_raw_division
-from tools.hmis_fetcher import fetch_hmis_summary
-from tools.chart_gen    import generate_all_charts
-from crew_report        import run_report
+from tools.kd_loader import get_raw_division
+from tools.chart_gen import generate_all_charts
+from crew_report     import run_report
 
 app = FastAPI(title="PIF Health Report API — CrewAI", version="2.0.0")
 
@@ -69,25 +68,21 @@ async def generate_report(division_id: str):
     # ── Crew runs in thread pool so it doesn't block the event loop ───
     async def run_in_thread():
         try:
-            # Step 0 — load KD data (instant)
+            # Step 0 — initialise (instant)
             queue.put_nowait({"type": "step", "idx": 0})
 
-            div_raw     = get_raw_division(division_id)
-            div_summary = get_division_summary(division_id)
-            div_name    = div_raw.get("fullName", division_id.upper())
-            hmis_summary = fetch_hmis_summary(division_id)
-            charts       = generate_all_charts(div_raw)
+            div_raw  = get_raw_division(division_id)
+            div_name = div_raw.get("fullName", division_id.upper())
 
-            # Steps 1-3 are emitted by task callbacks inside run_report
+            # Steps 1-3 emitted by task callbacks inside run_report
+            # Agents fetch KD/HMIS/chart data themselves via @tool wrappers
             html_raw = await loop.run_in_executor(
                 _executor,
-                lambda: run_report(
-                    div_summary, hmis_summary, div_name, charts,
-                    step_callback=on_step,
-                ),
+                lambda: run_report(division_id, div_name, step_callback=on_step),
             )
 
-            # Inject base64 chart images
+            # Inject base64 chart images (generated post-crew to avoid base64 bloat in context)
+            charts = generate_all_charts(div_raw)
             html = html_raw
             for key, b64 in charts.items():
                 if not b64:
