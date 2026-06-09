@@ -16,10 +16,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import litellm
-litellm.num_retries = 6                    # retry up to 6x on rate limit
+litellm.num_retries = 4                    # retry up to 4x on rate limit (with backoff)
 litellm.request_timeout = 120              # 2-min timeout per call
-os.environ.setdefault("GROQ_API_KEY",      # ensure litellm picks it up
-    os.getenv("GROQ_API_KEY", ""))
+_groq_key1 = os.getenv("GROQ_API_KEY", "")
+_groq_key2 = os.getenv("GROQ_API_KEY_2", "")
+os.environ.setdefault("GROQ_API_KEY", _groq_key1)   # primary key for litellm
+# Two-key fallback: if KEY_1 rate-limits, litellm router retries on KEY_2
+if _groq_key1 and _groq_key2:
+    litellm.api_key = _groq_key1
+    litellm.fallbacks = [
+        {"model": "groq/llama-3.1-8b-instant",
+         "api_key": _groq_key2,
+         "api_base": "https://api.groq.com/openai/v1"},
+    ]
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware

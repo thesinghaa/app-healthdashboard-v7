@@ -21,8 +21,9 @@ from agents import (
     checker_agent,   checker_task,
 )
 
-# 15-second gap between tasks — spreads ~10k tokens over ~60s → stays under Groq TPM
-PACE_SECONDS = 15
+# 65-second gap between tasks — each task lands in a separate 60s TPM window
+# Free-tier llama-3.1-8b-instant = 6000 TPM/min; 4 agents × ~3000 tokens = needs 4 windows
+PACE_SECONDS = 65
 
 
 def build_crew(division_id: str, div_full_name: str,
