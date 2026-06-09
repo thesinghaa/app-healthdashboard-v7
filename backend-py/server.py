@@ -16,19 +16,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import litellm
-litellm.num_retries = 4                    # retry up to 4x on rate limit (with backoff)
-litellm.request_timeout = 120              # 2-min timeout per call
-_groq_key1 = os.getenv("GROQ_API_KEY", "")
-_groq_key2 = os.getenv("GROQ_API_KEY_2", "")
-os.environ.setdefault("GROQ_API_KEY", _groq_key1)   # primary key for litellm
-# Two-key fallback: if KEY_1 rate-limits, litellm router retries on KEY_2
-if _groq_key1 and _groq_key2:
-    litellm.api_key = _groq_key1
-    litellm.fallbacks = [
-        {"model": "groq/llama-3.1-8b-instant",
-         "api_key": _groq_key2,
-         "api_base": "https://api.groq.com/openai/v1"},
-    ]
+litellm.num_retries = 3
+litellm.request_timeout = 120
+# Gemini API key — used by all agents via CrewAI LLM config
+_gemini_key = os.getenv("GEMINI_API_KEY", "")
+if _gemini_key:
+    os.environ.setdefault("GEMINI_API_KEY", _gemini_key)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
