@@ -18,10 +18,10 @@ load_dotenv()
 import litellm
 litellm.num_retries = 3
 litellm.request_timeout = 120
-# Gemini API key — used by all agents via CrewAI LLM config
+# Ensure GEMINI_API_KEY is in env so litellm's Gemini backend picks it up
 _gemini_key = os.getenv("GEMINI_API_KEY", "")
 if _gemini_key:
-    os.environ.setdefault("GEMINI_API_KEY", _gemini_key)
+    os.environ["GEMINI_API_KEY"] = _gemini_key
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
