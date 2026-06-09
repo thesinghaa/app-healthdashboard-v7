@@ -13,13 +13,16 @@ _KEY2 = os.getenv("GROQ_API_KEY_2", "") or _KEY1   # falls back to KEY1 if KEY2 
 
 _BASE_PARAMS = dict(
     model="groq/llama-3.1-8b-instant",
-    max_tokens=2000,
+    max_tokens=2000,    # default; individual agents override via make_agent()
     temperature=0.3,
 )
+# Writer gets more output budget; others stay compact
+WRITER_MAX_TOKENS = 3000
 
-FAST_MODEL   = LLM(**_BASE_PARAMS, api_key=_KEY1)   # DataCollector
-ALT_MODEL    = LLM(**_BASE_PARAMS, api_key=_KEY2)   # Analyst + QualityChecker
-STRONG_MODEL = LLM(**_BASE_PARAMS, api_key=_KEY1)   # ReportWriter (runs in new window)
+FAST_MODEL   = LLM(**_BASE_PARAMS, api_key=_KEY1)                          # DataCollector
+ALT_MODEL    = LLM(**_BASE_PARAMS, api_key=_KEY2)                          # Analyst + QC
+STRONG_MODEL = LLM(**{**_BASE_PARAMS, "max_tokens": WRITER_MAX_TOKENS},    # ReportWriter
+                   api_key=_KEY1)
 
 TONE_RULES = """
 LANGUAGE RULES (strictly mandatory for all output):

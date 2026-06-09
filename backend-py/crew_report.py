@@ -24,11 +24,11 @@ from agents import (
 # Gap between agent runs — gives TPM window time to clear on same key
 PACE_SECONDS = 20
 
-# Max chars of each agent's output to pass as context to the next agent
-# (~4 chars per token → 1200 chars ≈ 300 tokens context injection)
+# Max chars injected into each agent's task description as context.
+# ~4 chars/token. QC receives full writer HTML (no truncation) — within 6000 TPM budget.
 DC_TRUNCATE      = 1200
 ANALYST_TRUNCATE = 1200
-WRITER_TRUNCATE  = 2000   # writer output is HTML — QC needs more of it
+WRITER_TRUNCATE  = 20000  # no effective truncation — QC sees full HTML
 
 
 def _run_single(agent, task, max_retries: int = 4) -> str:
